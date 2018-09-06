@@ -1,11 +1,11 @@
-#Various utility and teaching codes
+# Various utility and teaching codes
 
 Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
 cfa22@drexel.edu  
 215 895 2231  
 (c) 2016   
 
-###INTRODUCTION
+### INTRODUCTION
 
 This is a set of standalone C programs I've written through the years for various reasons.  Many are for teaching molecular simulations and some are just nice data processing codes. A bare-bones list of the codes follows; more documentation will be added as I find the time.
 
