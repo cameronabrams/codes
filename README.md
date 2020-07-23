@@ -41,7 +41,7 @@ mdlj_nhc.c -- MD sim. LJ fluid with Nose-Hoover thermostat
 mdswsi.c -- MD sim. of Stillinger-Weber silicon  
 mktiff.c --  
 msd.c --  
-p2corr.c --  
+p2corr.c -- 2nd Legendre polynomial vector autocorrelation function calculation
 rdf.c --  
 slavg.c --   
 stitch.c --  
