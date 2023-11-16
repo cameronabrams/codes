@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+/* quartic double-well */
 void f ( double x, double a, double b, double c, double * e, double * f ) {
   double x2=x*x;
   double x3=x2*x;

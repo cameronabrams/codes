@@ -1,13 +1,13 @@
 /* 
-   Microcanonical Molecular Dynamics simulation of a Lennard-Jones fluid
-   in a periodic boundary
+   Molecular Dynamics simulation of a Lennard-Jones fluid
+   in a periodic boundary using the Langevin Thermostat
 
    Cameron F. Abrams
 
    Written for the course CHE 800-002, Molecular Simulation
    Spring 0304
 
-   compile using "gcc -o mdlj mdlj.c -lm -lgsl"
+   compile using "gcc -o mdlj_lan mdlj_lan.c -lm -lgsl"
    (assumes the GNU Scientific Library is installed)
 
    You must have the GNU Scientific Library installed; see
@@ -25,8 +25,8 @@
 
 /* Prints usage information */
 void usage ( void ) {
-  fprintf(stdout,"mdlj usage:\n");
-  fprintf(stdout,"mdlj [options]\n\n");
+  fprintf(stdout,"mdlj_lan usage:\n");
+  fprintf(stdout,"mdlj_lan [options]\n\n");
   fprintf(stdout,"Options:\n");
   fprintf(stdout,"\t -N [integer]\t\tNumber of particles\n");
   fprintf(stdout,"\t -rho [real]\t\tNumber density\n");
@@ -34,7 +34,9 @@ void usage ( void ) {
   fprintf(stdout,"\t -rc [real]\t\tCutoff radius\n");
   fprintf(stdout,"\t -ns [real]\t\tNumber of integration steps\n");
   fprintf(stdout,"\t -so       \t\tShort-form output (unused)\n");
-  fprintf(stdout,"\t -T0 [real]\t\tInitial temperature\n");
+  fprintf(stdout,"\t -T0 [real]\t\tInitial setpoint temperature\n");
+  fprintf(stdout,"\t -Tb [real]\t\tBath temperature\n");
+  fprintf(stdout,"\t -gam [real]\t\tThermostat friction coefficient\n");
   fprintf(stdout,"\t -fs [integer]\t\tSample frequency\n");
   fprintf(stdout,"\t -sf [a|w]\t\tAppend or write config output file\n");
   fprintf(stdout,"\t -icf [string]\t\tInitial configuration file\n");
@@ -88,46 +90,43 @@ double total_e ( double * rx, double * ry, double * rz,
 		 double * fx, double * fy, double * fz, 
 		 int N, double L,
 		 double rc2, double ecor, double ecut, double * vir ) {
-  int i,j;
-  double dx, dy, dz, r2, r6i;
-  double e = 0.0, hL=L/2.0,f;
+   int i,j;
+   double dx, dy, dz, r2, r6i;
+   double e = 0.0, hL=L/2.0,f;
 
-  /* Zero the forces */
-  for (i=0;i<N;i++) {
-    fx[i]=fy[i]=fz[i]=0.0;
-  }
+   /* Do NOT zero the forces! */
    
-  *vir=0.0;
-  for (i=0;i<(N-1);i++) {
-    for (j=i+1;j<N;j++) {
-      dx  = (rx[i]-rx[j]);
-      dy  = (ry[i]-ry[j]);
-      dz  = (rz[i]-rz[j]);
-      /* Periodic boundary conditions: Apply the minimum image
-        convention; note that this is *not* used to truncate the
-        potential as long as there an explicit cutoff. */
-      if (dx>hL)       dx-=L;
-      else if (dx<-hL) dx+=L;
-      if (dy>hL)       dy-=L;
-      else if (dy<-hL) dy+=L;
-      if (dz>hL)       dz-=L;
-      else if (dz<-hL) dz+=L;
-      r2 = dx*dx + dy*dy + dz*dz;
-      if (r2<rc2) {
-        r6i   = 1.0/(r2*r2*r2);
-        e    += 4*(r6i*r6i - r6i) - ecut;
-        f     = 48*(r6i*r6i-0.5*r6i);
-        fx[i] += dx*f/r2;
-        fx[j] -= dx*f/r2;
-        fy[i] += dy*f/r2;
-        fy[j] -= dy*f/r2;
-        fz[i] += dz*f/r2;
-        fz[j] -= dz*f/r2;
-        *vir += f;
-      }
-    }
-  }
-  return e+N*ecor;
+   *vir=0.0;
+   for (i=0;i<(N-1);i++) {
+     for (j=i+1;j<N;j++) {
+	dx  = (rx[i]-rx[j]);
+	dy  = (ry[i]-ry[j]);
+	dz  = (rz[i]-rz[j]);
+	/* Periodic boundary conditions: Apply the minimum image
+	   convention; note that this is *not* used to truncate the
+	   potential as long as there an explicit cutoff. */
+	if (dx>hL)       dx-=L;
+	else if (dx<-hL) dx+=L;
+	if (dy>hL)       dy-=L;
+	else if (dy<-hL) dy+=L;
+	if (dz>hL)       dz-=L;
+	else if (dz<-hL) dz+=L;
+	r2 = dx*dx + dy*dy + dz*dz;
+	if (r2<rc2) {
+	  r6i   = 1.0/(r2*r2*r2);
+	  e    += 4*(r6i*r6i - r6i) - ecut;
+	  f     = 48*(r6i*r6i-0.5*r6i);
+	  fx[i] += dx*f/r2;
+	  fx[j] -= dx*f/r2;
+	  fy[i] += dy*f/r2;
+	  fy[j] -= dy*f/r2;
+	  fz[i] += dz*f/r2;
+	  fz[j] -= dz*f/r2;
+	  *vir += f;
+	}
+     }
+   }
+   return e+N*ecor;
 }
 
 /* Initialize particle positions by assigning them
@@ -157,9 +156,11 @@ void init ( double * rx, double * ry, double * rz,
   }
   /* Assign particles on a cubic lattice */
   else {
+
     /* Find the lowest perfect cube, n3, greater than or equal to the
        number of particles */
     while ((n3*n3*n3)<n) n3++;
+  
     iix=iiy=iiz=0;
     /* Assign particle positions */
     for (i=0;i<n;i++) {
@@ -168,21 +169,21 @@ void init ( double * rx, double * ry, double * rz,
       rz[i] = ((double)iiz+0.5)*L/n3;
       iix++;
       if (iix==n3) {
-        iix=0;
-        iiy++;
-        if (iiy==n3) {
-          iiy=0;
-          iiz++;
-        }
+	iix=0;
+	iiy++;
+	if (iiy==n3) {
+	  iiy=0;
+	  iiz++;
+	}
       }
     }
   }
   /* If no velocities yet assigned, randomly pick some */
   if (!vel_ok) {
     for (i=0;i<n;i++) {
-      vx[i]=gsl_ran_exponential(r,1.0);
-      vy[i]=gsl_ran_exponential(r,1.0);
-      vz[i]=gsl_ran_exponential(r,1.0);
+      vx[i]=gsl_ran_gaussian(r,1.0);
+      vy[i]=gsl_ran_gaussian(r,1.0);
+      vz[i]=gsl_ran_gaussian(r,1.0);
     }
   }
   /* Take away any center-of-mass drift; compute initial KE */
@@ -226,18 +227,21 @@ int main ( int argc, char * argv[] ) {
   int * ix, * iy, * iz;
   int N=216,c,a;
   double L=0.0;
-  double rho=0.5, T=0.0, rc2 = 1.e20, vir, vir_old, vir_sum, pcor, V;
-  double PE, KE, TE, ecor, ecut, T0=1.0, TE0;
-  double rr3,dt=0.001, dt2;
+  double rho=0.5, Tb = 1.0, gamma=1.0, rc2 = 1.e20;
+  double vir, vir_sum, pcor, V;
+  double PE, KE, TE, ecor, ecut, T0=0.0, TE0;
+  double rr3,dt=0.001, dt2, gfric, noise;
   int i,j,s;
   int nSteps = 10, fSamp=100;
   int short_out=0;
   int use_e_corr=0;
   int unfold = 0;
+
   char fn[20];
   FILE * out;
   char * wrt_code_str = "w";
   char * init_cfg_file = NULL;
+
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   unsigned long int Seed = 23410981;
 
@@ -246,12 +250,13 @@ int main ( int argc, char * argv[] ) {
   for (i=1;i<argc;i++) {
     if (!strcmp(argv[i],"-N")) N=atoi(argv[++i]);
     else if (!strcmp(argv[i],"-rho")) rho=atof(argv[++i]);
-    else if (!strcmp(argv[i],"-T")) T=atof(argv[++i]);
+    else if (!strcmp(argv[i],"-gam")) gamma=atof(argv[++i]);
     else if (!strcmp(argv[i],"-dt")) dt=atof(argv[++i]);
     else if (!strcmp(argv[i],"-rc")) rc2=atof(argv[++i]);
     else if (!strcmp(argv[i],"-ns")) nSteps = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-so")) short_out=1;
     else if (!strcmp(argv[i],"-T0")) T0=atof(argv[++i]);
+    else if (!strcmp(argv[i],"-Tb")) Tb=atof(argv[++i]);
     else if (!strcmp(argv[i],"-fs")) fSamp=atoi(argv[++i]);
     else if (!strcmp(argv[i],"-sf")) wrt_code_str = argv[++i];
     else if (!strcmp(argv[i],"-icf")) init_cfg_file = argv[++i];
@@ -283,12 +288,20 @@ int main ( int argc, char * argv[] ) {
   /* compute the squared time step */
   dt2=dt*dt;
 
+  /* Compute gfric */
+  gfric = 1.0-gamma*dt/2.0;
+
+  /* Compute noise */
+  noise = sqrt(6.0*gamma*Tb/dt);
+
   /* Output some initial information */
-  fprintf(stdout,"# NVE MD Simulation of a Lennard-Jones fluid\n");
+  fprintf(stdout,"# Langevin-Thermostat MD Simulation"
+	  " of a Lennard-Jones fluid\n");
   fprintf(stdout,"# L = %.5lf; rho = %.5lf; N = %i; rc = %.5lf\n",
 	  L,rho,N,sqrt(rc2));
-  fprintf(stdout,"# nSteps %i, seed %d, dt %.5lf\n",
-	  nSteps,Seed,dt);
+  fprintf(stdout,"# nSteps %i, seed %d, dt %.5lf, T0 %.5lf, gamma %.5lf\n",
+	  nSteps,Seed,dt,T0,gamma);
+  fprintf(stdout,"# gfric %.5lf noise %.5lf\n",gfric,noise);
   
   /* Seed the random number generator */
   gsl_rng_set(r,Seed);
@@ -321,21 +334,32 @@ int main ( int argc, char * argv[] ) {
   xyz_out(out,rx,ry,rz,vx,vy,vz,ix,iy,iz,L,N,16,1,unfold);
   fclose(out);
 
-  PE = total_e(rx,ry,rz,fx,fy,fz,N,L,rc2,ecor,ecut,&vir_old);
+  PE = total_e(rx,ry,rz,fx,fy,fz,N,L,rc2,ecor,ecut,&vir);
   TE0=PE+KE;
   
-  fprintf(stdout,"# step PE KE TE drift T P\n");
+  fprintf(stdout,"# step time PE KE TE drift T P\n");
 
   for (s=0;s<nSteps;s++) {
 
+    /* Initialize forces */
+    if (noise > 0) {
+      for (i=0;i<N;i++) {
+	fx[i] = 2*noise*(gsl_rng_uniform(r)-0.5);
+	fy[i] = 2*noise*(gsl_rng_uniform(r)-0.5);
+	fz[i] = 2*noise*(gsl_rng_uniform(r)-0.5);
+      }
+    }
     /* First integration half-step */
     for (i=0;i<N;i++) {
+      /* For fun, do velocity half-update first, so that
+         position update feels the friction */
+      vx[i] = vx[i]*gfric + 0.5*dt*fx[i];
+      vy[i] = vy[i]*gfric + 0.5*dt*fy[i];
+      vz[i] = vz[i]*gfric + 0.5*dt*fz[i];
       rx[i]+=vx[i]*dt+0.5*dt2*fx[i];
       ry[i]+=vy[i]*dt+0.5*dt2*fy[i];
       rz[i]+=vz[i]*dt+0.5*dt2*fz[i];
-      vx[i]+=0.5*dt*fx[i];
-      vy[i]+=0.5*dt*fy[i];
-      vz[i]+=0.5*dt*fz[i];
+
       /* Apply periodic boundary conditions */
       if (rx[i]<0.0) { rx[i]+=L; ix[i]--; }
       if (rx[i]>L)   { rx[i]-=L; ix[i]++; }
@@ -350,9 +374,9 @@ int main ( int argc, char * argv[] ) {
     /* Second integration half-step */
     KE = 0.0;
     for (i=0;i<N;i++) {
-      vx[i]+=0.5*dt*fx[i];
-      vy[i]+=0.5*dt*fy[i];
-      vz[i]+=0.5*dt*fz[i];
+      vx[i] = vx[i]*gfric + 0.5*dt*fx[i];
+      vy[i] = vy[i]*gfric + 0.5*dt*fy[i];
+      vz[i] = vz[i]*gfric + 0.5*dt*fz[i];
       KE+=vx[i]*vx[i]+vy[i]*vy[i]+vz[i]*vz[i];
     }
     KE*=0.5;

@@ -1,0 +1,26 @@
+/* 
+ * cam_clr2str -- a code fragment to be included in the function
+ * colormap::colorStr.
+ */
+ 
+    if (c == &black) strcpy(rv, "black");
+    if (c == &white) strcpy(rv, "white");
+    if (c == &red) strcpy(rv, "red");
+    if (c == &orange) strcpy(rv, "orange");
+    if (c == &green) strcpy(rv, "green");
+    if (c == &blue) strcpy(rv, "blue");
+    if (c == &darkgold1) strcpy(rv, "darkgold1");
+    if (c == &peagreen) strcpy(rv, "peagreen");
+    if (c == &darkpeagreen) strcpy(rv, "darkpeagreen");
+    if (c == &yellow) strcpy(rv, "yellow");
+    if (c == &violet) strcpy(rv, "violet");
+    if (c == &violet2) strcpy(rv, "violet2");
+    if (c == &bronze) strcpy(rv, "bronze");
+    if (c == &grey1) strcpy(rv, "grey1");
+    if (c == &grey2) strcpy(rv, "grey2");
+    if (c == &grey3) strcpy(rv, "grey3");
+    if (c == &cyan) strcpy(rv, "cyan");
+    if (c == &SlateBlue) strcpy(rv, "SlateBlue");
+    if (c == &navy) strcpy(rv, "navy");
+    if (c == &khaki) strcpy(rv, "khaki");
+    if (c == &grey4) strcpy(rv, "grey4");

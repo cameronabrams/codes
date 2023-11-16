@@ -1,0 +1,26 @@
+/*
+ * cam_str2ptr.c -- a code fragment to be included in the
+ * function colormap::colorPtr.
+ */
+ 
+    if (!strcmp(colorStr, "black") || !strcmp(colorStr, "BLACK")) return &black;
+    if (!strcmp(colorStr, "white") || !strcmp(colorStr, "WHITE")) return &white;
+    if (!strcmp(colorStr, "red") || !strcmp(colorStr, "RED")) return &red;
+    if (!strcmp(colorStr, "orange") || !strcmp(colorStr, "ORANGE")) return &orange;
+    if (!strcmp(colorStr, "green") || !strcmp(colorStr, "GREEN")) return &green;
+    if (!strcmp(colorStr, "blue") || !strcmp(colorStr, "BLUE")) return &blue;
+    if (!strcmp(colorStr, "darkgold1") || !strcmp(colorStr, "DARKGOLD1")) return &darkgold1;
+    if (!strcmp(colorStr, "peagreen") || !strcmp(colorStr, "PEAGREEN")) return &peagreen;
+    if (!strcmp(colorStr, "darkpeagreen") || !strcmp(colorStr, "DARKPEAGREEN")) return &darkpeagreen;
+    if (!strcmp(colorStr, "yellow") || !strcmp(colorStr, "YELLOW")) return &yellow;
+    if (!strcmp(colorStr, "violet") || !strcmp(colorStr, "VIOLET")) return &violet;
+    if (!strcmp(colorStr, "violet2") || !strcmp(colorStr, "VIOLET2")) return &violet2;
+    if (!strcmp(colorStr, "bronze") || !strcmp(colorStr, "BRONZE")) return &bronze;
+    if (!strcmp(colorStr, "grey1") || !strcmp(colorStr, "GREY1")) return &grey1;
+    if (!strcmp(colorStr, "grey2") || !strcmp(colorStr, "GREY2")) return &grey2;
+    if (!strcmp(colorStr, "grey3") || !strcmp(colorStr, "GREY3")) return &grey3;
+    if (!strcmp(colorStr, "cyan") || !strcmp(colorStr,"CYAN")) return &cyan;
+    if (!strcmp(colorStr, "SlateBlue") || !strcmp(colorStr,"SLATEBLUE")) return &SlateBlue;
+    if (!strcmp(colorStr, "navy") || !strcmp(colorStr,"NAVY")) return &navy;
+    if (!strcmp(colorStr, "khaki") || !strcmp(colorStr,"KHAKI")) return &khaki;
+    if (!strcmp(colorStr, "grey4") || !strcmp(colorStr,"GREY4")) return &grey4;

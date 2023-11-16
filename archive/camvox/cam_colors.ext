@@ -1,0 +1,11 @@
+/*
+ * cam_colors.ext -- code-fragment included by modules that use
+ * external colormap color definitions.
+ */
+ 
+extern color_t black, white, red, blue, green, darkgold1, peagreen, 
+               violet, violet2, bronze, darkpeagreen, 
+		grey1, grey2, yellow, grey3;
+extern color_t cyan,navy,slateblue;
+extern color_t khaki;
+extern color_t grey4;

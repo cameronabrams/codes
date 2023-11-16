@@ -3,8 +3,8 @@
 
    Cameron F. Abrams
 
-   Written for the course CHE 800-002, Molecular Simulation
-   Spring 0304
+   Written for the course CHE T580, Modern Molecular Simulations
+   Spring 2021
 
    compile using "gcc -o ising ising.c -lm -lgsl"
    (assumes the GNU Scientific Library is installed)
@@ -20,8 +20,7 @@
    
    The default values are shown in parentheses above.
 
-   You must have the GNU Scientific Library installed; see
-   the coursenotes to learn how to do this.
+   You must have the GNU Scientific Library installed.
 
    The Hamiltonian is 
 
@@ -36,28 +35,34 @@
 
    Drexel University, Department of Chemical Engineering
    Philadelphia
-   (c) 2004
+   (c) 2004-2021
 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <gsl/gsl_rng.h>
 
-/* This function computes and returns the change in
-   system energy when spin (i,j) is flipped.  The
-   modulo arithmetic (the % operator) ensures 
+/* dE() returns the change in energy when spin (i,j) 
+   is flipped. Modulo arithmetic (the % operator) ensures 
    periodic boundaries. The syntax "i?(i-1):(L-1)"
    performs the following check:  If i is non-zero,
    return i-1, otherwise return L-1.  This also 
-   ensures periodic boundaries.  */
-int E ( int ** F, int L, int i, int j ) {
-  return -2*(F[i][j])*(F[i?(i-1):(L-1)][j]+F[(i+1)%L][j]+
-		      F[i][j?(j-1):(L-1)]+F[i][(j+1)%L]);
+   ensures periodic boundaries.  
+   
+   Parameters:
+    M: 2D array of spins (the magnet)
+    L: side-length of magnet
+    i,j: coordinates of proposal spin
+   
+   */
+int dE ( int ** M, int L, int i, int j ) {
+  return -2*(M[i][j])*(M[i?(i-1):(L-1)][j]+M[(i+1)%L][j]+
+		      M[i][j?(j-1):(L-1)]+M[i][(j+1)%L]);
 }
 
 /* Sample the system; compute the average magnetization
    and the average energy per spin */
-double samp ( int ** F, int L, double * s, double * e ) {
+double samp ( int ** M, int L, double * s, double * e ) {
   int i,j;
 
   *s=0.0;
@@ -65,8 +70,8 @@ double samp ( int ** F, int L, double * s, double * e ) {
   /* Visit each position (i,j) in the lattice */
   for (i=0;i<L;i++) {
     for (j=0;j<L;j++) {
-      *s+=(double)F[i][j];
-      *e-=(double)(F[i][j])*(F[i][(j+1)%L]+F[(i+1)%L][j]);
+      *s+=(double)M[i][j];
+      *e-=(double)(M[i][j])*(M[i][(j+1)%L]+M[(i+1)%L][j]);
     }
   }
   *s/=(L*L);
@@ -74,14 +79,14 @@ double samp ( int ** F, int L, double * s, double * e ) {
 }
 
 /* Randomly assigns all spins */
-void init ( int ** F, int L, gsl_rng * r ) {
+void init ( int ** M, int L, gsl_rng * r ) {
   int i,j;
 
   /* Visit each position (i,j) in the lattice */
   for (i=0;i<L;i++) {
     for (j=0;j<L;j++) {
       /* 2*x-1, where x is randomly 0,1 */
-      F[i][j]=2*(int)gsl_rng_uniform_int(r,2)-1;
+      M[i][j]=2*(int)gsl_rng_uniform_int(r,2)-1;
     }
   }
 }
@@ -89,7 +94,7 @@ void init ( int ** F, int L, gsl_rng * r ) {
 int main (int argc, char * argv[]) {
 
   /* System parameters */
-  int ** F;       /* The 2D array of spins */
+  int ** M;       /* The 2D array of spins */
   int L = 20;     /* The sidelength of the array */
   int N;          /* The total number of spins = L*L */
   double T = 1.0; /* Dimensionless temperature = (T*k)/J */
@@ -140,11 +145,11 @@ int main (int argc, char * argv[]) {
   N=L*L;
 
   /* Allocate memory for the system */
-  F=(int**)malloc(L*sizeof(int*));
+  M=(int**)malloc(L*sizeof(int*));
   for (i=0;i<L;i++) F[i]=(int*)malloc(L*sizeof(int));
 
   /* Generate an initial state */
-  init(F,L,r);
+  init(M,L,r);
 
   /* For computational efficiency, convert T to reciprocal T */
   T=1.0/T;
@@ -160,7 +165,7 @@ int main (int argc, char * argv[]) {
       j=(int)gsl_rng_uniform_int(r,L);
       /* get the "new" energy as the incremental change due
          to flipping spin (i,j) */
-      de = E(F,L,i,j);
+      de = dE(F,L,i,j);
       /* compute the Boltzmann factor; recall T is now
          reciprocal temperature */
       b = exp(de*T);
@@ -168,13 +173,13 @@ int main (int argc, char * argv[]) {
       x = gsl_rng_uniform(r);
       /* accept or reject this flip */
       if (x<b) { /* accept */
-	/* flip it */
-	F[i][j]*=-1;
+	      /* flip it */
+	      M[i][j]*=-1;
       }
     }
     /* Sample and accumulate averages */
     if (!(c%fSamp)) {
-      samp(F,L,&s,&e);
+      samp(M,L,&s,&e);
       fprintf(stdout,"%i %.5le %.5le\n",c,s,e);
       fflush(stdout);
       ssum+=s;
